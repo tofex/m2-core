@@ -1,6 +1,6 @@
 <?php
 
-namespace Tofex\Util\Helper;
+namespace Tofex\Core\Helper;
 
 use Magento\Email\Model\ResourceModel\Template\CollectionFactory;
 use Magento\Framework\Data\Collection;
