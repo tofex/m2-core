@@ -5,6 +5,7 @@ namespace Tofex\Core\Helper;
 use Exception;
 use Magento\Catalog\Api\CategoryAttributeRepositoryInterface;
 use Magento\Catalog\Api\ProductAttributeRepositoryInterface;
+use Magento\Eav\Model\ConfigFactory;
 use Magento\Eav\Model\Entity\Attribute\Set;
 use Magento\Eav\Model\Entity\Attribute\SetFactory;
 use Magento\Eav\Model\Entity\AttributeFactory;
@@ -49,6 +50,12 @@ class Attribute
     /** @var \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory */
     protected $productAttributeCollectionFactory;
 
+    /** @var ConfigFactory */
+    protected $configFactory;
+
+    /** @var \Magento\Eav\Model\Entity\Attribute[] */
+    private $attributes = [];
+
     /**
      * @param AttributeFactory                                                          $attributeFactory
      * @param \Magento\Eav\Model\ResourceModel\Entity\AttributeFactory                  $attributeResourceFactory
@@ -60,6 +67,7 @@ class Attribute
      * @param ProductAttributeRepositoryInterface                                       $productAttributeRepository
      * @param CategoryAttributeRepositoryInterface                                      $categoryAttributeRepository
      * @param \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory  $productAttributeCollectionFactory
+     * @param ConfigFactory                                                             $configFactory
      */
     public function __construct(
         AttributeFactory $attributeFactory,
@@ -71,7 +79,8 @@ class Attribute
         \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\CollectionFactory $attributeGroupCollectionFactory,
         ProductAttributeRepositoryInterface $productAttributeRepository,
         CategoryAttributeRepositoryInterface $categoryAttributeRepository,
-        \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $productAttributeCollectionFactory)
+        \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $productAttributeCollectionFactory,
+        ConfigFactory $configFactory)
     {
         $this->attributeFactory = $attributeFactory;
         $this->attributeResourceFactory = $attributeResourceFactory;
@@ -83,6 +92,7 @@ class Attribute
         $this->productAttributeRepository = $productAttributeRepository;
         $this->categoryAttributeRepository = $categoryAttributeRepository;
         $this->productAttributeCollectionFactory = $productAttributeCollectionFactory;
+        $this->configFactory = $configFactory;
     }
 
     /**
@@ -203,5 +213,40 @@ class Attribute
     public function getProductAttributeCollection(): \Magento\Catalog\Model\ResourceModel\Product\Attribute\Collection
     {
         return $this->productAttributeCollectionFactory->create();
+    }
+
+    /**
+     * @param string $entityTypeCode
+     * @param string $attributeCode
+     *
+     * @return \Magento\Eav\Model\Entity\Attribute
+     * @throws Exception
+     */
+    public function getAttribute(string $entityTypeCode, string $attributeCode): \Magento\Eav\Model\Entity\Attribute
+    {
+        $key = sprintf('%s_%s', $entityTypeCode, $attributeCode);
+
+        if (array_key_exists($key, $this->attributes)) {
+            if ($this->attributes[ $key ] === null) {
+                throw new Exception(sprintf('Could not load attribute with entity: %s and code: %s', $entityTypeCode,
+                    $attributeCode));
+            }
+
+            return $this->attributes[ $key ];
+        }
+
+        /** @var \Magento\Eav\Model\Entity\Attribute $attribute */
+        $attribute = $this->configFactory->create()->getAttribute($entityTypeCode, $attributeCode);
+
+        if ( ! $attribute || ! $attribute->getId()) {
+            $this->attributes[ $key ] = null;
+
+            throw new Exception(sprintf('Could not load attribute with entity: %s and code: %s', $entityTypeCode,
+                $attributeCode));
+        }
+
+        $this->attributes[ $key ] = $attribute;
+
+        return $attribute;
     }
 }
