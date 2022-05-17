@@ -1,6 +1,6 @@
 <?php
 
-namespace Tofex\Eav\Model\Config\Source\Attribute;
+namespace Tofex\Core\Model\Config\Source\Attribute;
 
 use Magento\Customer\Model\Attribute;
 
