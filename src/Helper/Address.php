@@ -3,10 +3,11 @@
 namespace Tofex\Core\Helper;
 
 use Exception;
+use Magento\Customer\Model\AddressFactory;
+use Magento\Customer\Model\ResourceModel\Address\Collection;
+use Magento\Customer\Model\ResourceModel\Address\CollectionFactory;
 use Magento\Directory\Model\Country;
 use Magento\Directory\Model\CountryFactory;
-use Magento\Directory\Model\ResourceModel\Country\Collection;
-use Magento\Directory\Model\ResourceModel\Country\CollectionFactory;
 
 /**
  * @author      Andreas Knollmann
@@ -15,28 +16,86 @@ use Magento\Directory\Model\ResourceModel\Country\CollectionFactory;
  */
 class Address
 {
+    /** @var AddressFactory */
+    protected $addressFactory;
+
+    /** @var \Magento\Customer\Model\ResourceModel\AddressFactory */
+    protected $addressResourceFactory;
+
+    /** @var CollectionFactory */
+    private $addressCollectionFactory;
+
     /** @var CountryFactory */
     protected $countryFactory;
 
     /** @var \Magento\Directory\Model\ResourceModel\CountryFactory */
     protected $countryResourceFactory;
 
-    /** @var CollectionFactory */
+    /** @var \Magento\Directory\Model\ResourceModel\Country\CollectionFactory */
     protected $countryCollectionFactory;
 
     /**
-     * @param CountryFactory                                        $countryFactory
-     * @param \Magento\Directory\Model\ResourceModel\CountryFactory $countryResourceFactory
-     * @param CollectionFactory                                     $countryCollectionFactory
+     * @param AddressFactory                                                   $addressFactory
+     * @param \Magento\Customer\Model\ResourceModel\AddressFactory             $addressResourceFactory
+     * @param CollectionFactory                                                $addressCollectionFactory
+     * @param CountryFactory                                                   $countryFactory
+     * @param \Magento\Directory\Model\ResourceModel\CountryFactory            $countryResourceFactory
+     * @param \Magento\Directory\Model\ResourceModel\Country\CollectionFactory $countryCollectionFactory
      */
     public function __construct(
+        AddressFactory $addressFactory,
+        \Magento\Customer\Model\ResourceModel\AddressFactory $addressResourceFactory,
+        CollectionFactory $addressCollectionFactory,
         CountryFactory $countryFactory,
         \Magento\Directory\Model\ResourceModel\CountryFactory $countryResourceFactory,
-        CollectionFactory $countryCollectionFactory)
+        \Magento\Directory\Model\ResourceModel\Country\CollectionFactory $countryCollectionFactory)
     {
+        $this->addressFactory = $addressFactory;
+        $this->addressResourceFactory = $addressResourceFactory;
+        $this->addressCollectionFactory = $addressCollectionFactory;
         $this->countryFactory = $countryFactory;
         $this->countryResourceFactory = $countryResourceFactory;
         $this->countryCollectionFactory = $countryCollectionFactory;
+    }
+
+    /**
+     * @return \Magento\Customer\Model\Address
+     */
+    public function newAddress(): \Magento\Customer\Model\Address
+    {
+        return $this->addressFactory->create();
+    }
+
+    /**
+     * @param int $addressId
+     *
+     * @return \Magento\Customer\Model\Address
+     */
+    public function loadAddress(int $addressId): \Magento\Customer\Model\Address
+    {
+        $address = $this->newAddress();
+
+        $this->addressResourceFactory->create()->load($address, $addressId);
+
+        return $address;
+    }
+
+    /**
+     * @param \Magento\Customer\Model\Address $address
+     *
+     * @throws Exception
+     */
+    public function saveAddress(\Magento\Customer\Model\Address $address)
+    {
+        $this->addressResourceFactory->create()->save($address);
+    }
+
+    /**
+     * @return  Collection
+     */
+    public function getAddressCollection(): Collection
+    {
+        return $this->addressCollectionFactory->create();
     }
 
     /**
@@ -66,15 +125,15 @@ class Address
      *
      * @throws Exception
      */
-    public function saveProduct(Country $country)
+    public function saveCountry(Country $country)
     {
         $this->countryResourceFactory->create()->save($country);
     }
 
     /**
-     * @return Collection
+     * @return \Magento\Directory\Model\ResourceModel\Country\Collection
      */
-    public function getProductCollection(): Collection
+    public function getCountryCollection(): \Magento\Directory\Model\ResourceModel\Country\Collection
     {
         return $this->countryCollectionFactory->create();
     }
