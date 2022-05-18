@@ -138,6 +138,35 @@ class Stores
 
     /**
      * @param string   $path
+     * @param mixed    $defaultValue
+     * @param bool     $isFlag
+     * @param int|null $websiteId
+     *
+     * @return mixed
+     */
+    public function getWebsiteConfig(string $path, $defaultValue = null, bool $isFlag = false, int $websiteId = null)
+    {
+        try {
+            $website = $this->getWebsite($websiteId);
+
+            $value = $this->scopeConfig->getValue($path, ScopeInterface::SCOPE_WEBSITE, $website->getCode());
+
+            if ($isFlag === true && ! is_null($value)) {
+                $value = $this->scopeConfig->isSetFlag($path, ScopeInterface::SCOPE_WEBSITE, $website->getCode());
+            }
+
+            if (is_null($value)) {
+                $value = $defaultValue;
+            }
+
+            return $value;
+        } catch (LocalizedException $exception) {
+            return $defaultValue;
+        }
+    }
+
+    /**
+     * @param string   $path
      * @param bool     $defaultValue
      * @param int|null $storeId
      *
@@ -236,37 +265,6 @@ class Stores
     {
         $this->databaseHelper->getDefaultConnection()
             ->delete($this->databaseHelper->getTableName('core_config_data'), sprintf('path = "%s"', $path));
-    }
-
-    /**
-     * @param string   $path
-     * @param mixed    $defaultValue
-     * @param bool     $isFlag
-     * @param int|null $websiteId
-     *
-     * @return mixed
-     * @throws LocalizedException
-     */
-    public function getWebsiteConfig(string $path, $defaultValue = null, bool $isFlag = false, int $websiteId = null)
-    {
-        try {
-            /** @var Website $website */
-            $website = $this->getWebsite($websiteId);
-
-            $value = $this->scopeConfig->getValue($path, ScopeInterface::SCOPE_WEBSITE, $website->getCode());
-
-            if ($isFlag === true && ! is_null($value)) {
-                $value = $this->scopeConfig->isSetFlag($path, ScopeInterface::SCOPE_WEBSITE, $website->getCode());
-            }
-
-            if (is_null($value)) {
-                $value = $defaultValue;
-            }
-
-            return $value;
-        } catch (NoSuchEntityException $exception) {
-            return $defaultValue;
-        }
     }
 
     /**

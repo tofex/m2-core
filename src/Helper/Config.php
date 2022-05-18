@@ -3,6 +3,7 @@
 namespace Tofex\Core\Helper;
 
 use Exception;
+use Tofex\Help\Arrays;
 use Tofex\Help\Json;
 
 /**
@@ -12,6 +13,12 @@ use Tofex\Help\Json;
  */
 class Config
 {
+    /** @var Arrays */
+    protected $arrayHelper;
+
+    /** @var \Tofex\Help\Files */
+    protected $filesHelper;
+
     /** @var Stores */
     protected $storeHelper;
 
@@ -19,11 +26,19 @@ class Config
     protected $jsonHelper;
 
     /**
-     * @param Stores $storeHelper
-     * @param Json   $jsonHelper
+     * @param Arrays            $arrayHelper
+     * @param \Tofex\Help\Files $filesHelper
+     * @param Stores            $storeHelper
+     * @param Json              $jsonHelper
      */
-    public function __construct(Stores $storeHelper, Json $jsonHelper)
+    public function __construct(
+        Arrays $arrayHelper,
+        \Tofex\Help\Files $filesHelper,
+        Stores $storeHelper,
+        Json $jsonHelper)
     {
+        $this->arrayHelper = $arrayHelper;
+        $this->filesHelper = $filesHelper;
         $this->storeHelper = $storeHelper;
         $this->jsonHelper = $jsonHelper;
     }
@@ -149,5 +164,80 @@ class Config
 
             $this->storeHelper->insertConfigValue($path, $value, $scope, $scopeId);
         }
+    }
+
+    /**
+     * @param string $fileName
+     * @param string $path
+     *
+     * @throws Exception
+     */
+    public function exportConfigJsonFile(string $fileName, string $path)
+    {
+        $directoryName = dirname($fileName);
+
+        $this->filesHelper->createDirectory($directoryName);
+
+        if (file_exists($directoryName)) {
+            $output = $this->jsonHelper->encode($this->getScopeConfig($path), true, true);
+
+            if ($output === false) {
+                throw new Exception(sprintf('Could not export configuration because: %s', json_last_error_msg()));
+            } else {
+                file_put_contents($fileName, $output);
+            }
+        } else {
+            throw new Exception(sprintf('Could not access directory: %s', $directoryName));
+        }
+    }
+
+    /**
+     * @param string $path
+     *
+     * @return array
+     */
+    public function getScopeConfig(string $path): array
+    {
+        $config = [];
+
+        $pathElements = empty($path) ? [] : explode('/', $path);
+        array_unshift($pathElements, '0');
+        array_unshift($pathElements, 'default');
+
+        $defaultConfig = $this->storeHelper->getStoreConfig($path, [], false, 0);
+
+        if ( ! empty($defaultConfig)) {
+            $config = $this->arrayHelper->addDeepValue($config, $pathElements, $defaultConfig);
+        }
+
+        foreach ($this->storeHelper->getWebsites() as $website) {
+            $websiteConfig = $this->storeHelper->getWebsiteConfig($path, [], false, $website->getId());
+
+            $websiteConfigDiff = $this->arrayHelper->arrayDiffRecursive($defaultConfig, $websiteConfig);
+
+            if ( ! empty($websiteConfigDiff)) {
+                $pathElements = empty($path) ? [] : explode('/', $path);
+                array_unshift($pathElements, $website->getId());
+                array_unshift($pathElements, 'website');
+
+                $config = $this->arrayHelper->addDeepValue($config, $pathElements, $websiteConfigDiff);
+            }
+
+            foreach ($website->getStores() as $store) {
+                $storeConfig = $this->storeHelper->getStoreConfig($path, [], false, $store->getId());
+
+                $storeConfigDiff = $this->arrayHelper->arrayDiffRecursive($websiteConfig, $storeConfig);
+
+                if ( ! empty($storeConfigDiff)) {
+                    $pathElements = empty($path) ? [] : explode('/', $path);
+                    array_unshift($pathElements, $store->getId());
+                    array_unshift($pathElements, 'store');
+
+                    $config = $this->arrayHelper->addDeepValue($config, $pathElements, $storeConfigDiff);
+                }
+            }
+        }
+
+        return $this->arrayHelper->cleanStrings($config);
     }
 }

@@ -4,11 +4,11 @@
   "require": {
     "php": ">=7.1",
     "magento/framework": "~101.0.0|~102.0.0|~103.0.0",
-    "tofex/help": "~1.0.0",
+    "tofex/help": "~1.1.0",
     "tofex/xml": "~1.0.0"
   },
   "type": "magento2-module",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "license": "MIT",
   "autoload": {
     "files": [
