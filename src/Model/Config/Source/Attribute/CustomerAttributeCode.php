@@ -2,7 +2,7 @@
 
 namespace Tofex\Core\Model\Config\Source\Attribute;
 
-use Magento\Customer\Model\Attribute;
+use Magento\Eav\Model\Entity\Attribute;
 
 /**
  * @author      Andreas Knollmann

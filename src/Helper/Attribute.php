@@ -636,7 +636,7 @@ class Attribute
             $this->initAttributeOptions($entityTypeCode, $attributeCode, $storeId);
         }
 
-        $attributeOptionValues = $this->attributeOptionValues[ $key ];
+        $attributeOptionValues = $this->arrayHelper->getValue($this->attributeOptionValues, $key, []);
 
         if ($strToLower) {
             $attributeOptionValues = array_map('strtolower', $attributeOptionValues);
@@ -662,7 +662,7 @@ class Attribute
             return;
         }
 
-        $key = $attribute->getAttributeCode() . '_' . $storeId;
+        $key = md5(json_encode([$entityTypeCode, $attributeCode, $storeId]));
 
         try {
             if (empty($storeId)) {
@@ -860,7 +860,7 @@ class Attribute
             $optionId = rand(10000000, 99999999);
         }
 
-        $key = $attribute->getAttributeCode() . '_' . $storeId;
+        $key = md5(json_encode([$entityTypeCode, $attributeCode, $storeId]));
 
         if ( ! array_key_exists($key, $this->attributeOptionValues)) {
             $this->getAttributeOptionValues($entityTypeCode, $attributeCode, $storeId);

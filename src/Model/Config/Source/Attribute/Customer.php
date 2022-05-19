@@ -2,8 +2,8 @@
 
 namespace Tofex\Core\Model\Config\Source\Attribute;
 
-use Magento\Customer\Model\Attribute;
 use Magento\Customer\Model\ResourceModel\Attribute\CollectionFactory;
+use Magento\Eav\Model\Entity\Attribute;
 use Magento\Framework\Data\Collection;
 use Magento\Framework\Data\OptionSourceInterface;
 
@@ -63,7 +63,7 @@ class Customer
 
         $customerAttributeCollection->addOrder('frontend_label', Collection::SORT_ORDER_ASC);
 
-        /** @var Attribute $customAttribute */
+        /** @var Attribute $customerAttribute */
         foreach ($customerAttributeCollection as $customerAttribute) {
             $frontendLabel = $customerAttribute->getData('frontend_label');
 
