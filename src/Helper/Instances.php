@@ -25,12 +25,13 @@ class Instances
 
     /**
      * @param string $className
+     * @param array  $arguments
      *
      * @return object
      */
-    public function getInstance(string $className)
+    public function getInstance(string $className, array $arguments = [])
     {
-        $instance = $this->objectManager->create($className);
+        $instance = $this->objectManager->create($className, $arguments);
 
         if ($instance) {
             return $instance;

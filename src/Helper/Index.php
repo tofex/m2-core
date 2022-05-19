@@ -3,9 +3,11 @@
 namespace Tofex\Core\Helper;
 
 use Magento\Framework\Exception\AlreadyExistsException;
+use Magento\Framework\Indexer\IndexerInterface;
 use Magento\Framework\Indexer\StateInterface;
 use Magento\Indexer\Model\Indexer;
 use Magento\Indexer\Model\Indexer\State;
+use Magento\Indexer\Model\IndexerFactory;
 use Magento\Indexer\Model\ResourceModel\Indexer\StateFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -23,14 +25,22 @@ class Index
     /** @var StateFactory */
     protected $stateResourceFactory;
 
+    /** @var IndexerFactory */
+    protected $indexerFactory;
+
     /**
      * @param LoggerInterface $logging
      * @param StateFactory    $stateResourceFactory
+     * @param IndexerFactory  $indexerFactory
      */
-    public function __construct(LoggerInterface $logging, StateFactory $stateResourceFactory)
+    public function __construct(
+        LoggerInterface $logging,
+        StateFactory $stateResourceFactory,
+        IndexerFactory $indexerFactory)
     {
         $this->logging = $logging;
         $this->stateResourceFactory = $stateResourceFactory;
+        $this->indexerFactory = $indexerFactory;
     }
 
     /**
@@ -57,5 +67,15 @@ class Index
         $indexer->reindexAll();
 
         $this->logging->info(sprintf('Finished indexer with id: %s', $indexer->getId()));
+    }
+
+    /**
+     * @param string $indexerName
+     *
+     * @return IndexerInterface
+     */
+    public function loadIndexer(string $indexerName): IndexerInterface
+    {
+        return $this->indexerFactory->create()->load($indexerName);
     }
 }

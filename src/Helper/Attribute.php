@@ -16,6 +16,7 @@ use Magento\Eav\Model\Entity\AttributeFactory;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\Collection;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\CollectionFactory;
 use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\DB\Adapter\Pdo\Mysql;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -94,6 +95,18 @@ class Attribute
 
     /** @var array */
     private $attributeOptionIds = [];
+
+    /** @var array */
+    private $categoryAttributes = [];
+
+    /** @var array */
+    private $productAttributes = [];
+
+    /** @var Set[] */
+    private $attributeSetsById = [];
+
+    /** @var Set[] */
+    private $attributeSetsByName = [];
 
     /**
      * @param Arrays                                                                    $arrayHelper
@@ -769,5 +782,221 @@ class Attribute
         } else {
             return (string)$attribute->getBackendType();
         }
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param string           $entityTypeCode
+     * @param string           $attributeCode
+     * @param int              $sortOrder
+     * @param int              $storeId
+     * @param string|null      $value
+     * @param bool             $test
+     *
+     * @return int|null
+     * @throws Exception
+     */
+    public function addAttributeOption(
+        AdapterInterface $dbAdapter,
+        string $entityTypeCode,
+        string $attributeCode,
+        int $sortOrder,
+        int $storeId,
+        string $value = null,
+        bool $test = false): ?int
+    {
+        $this->logging->info(sprintf('Adding option to attribute with code: %s in store with id: %d using value: "%s"',
+            $attributeCode, $storeId, $value));
+
+        if ($value === null) {
+            $this->logging->error(sprintf('Could not add option to attribute with code: %s in store with id: %d using value: "%s" because: %s',
+                $attributeCode, $storeId, $value, 'Value cannot be null'));
+
+            return null;
+        }
+
+        $attribute = $this->getAttribute($entityTypeCode, $attributeCode);
+
+        $optionTableName = $this->databaseHelper->getTableName('eav_attribute_option');
+        $optionValueTableName = $this->databaseHelper->getTableName('eav_attribute_option_value');
+
+        if ( ! $test) {
+            try {
+                $dbAdapter->insert($optionTableName, [
+                    'attribute_id' => $attribute->getId(),
+                    'sort_order'   => $sortOrder
+                ]);
+
+                /** @var Mysql $dbAdapter */
+                $optionId = $dbAdapter->lastInsertId($optionTableName);
+
+                if (empty($optionId)) {
+                    $this->logging->error(sprintf('Could not add option to attribute with code: %s in store with id: %d because: %s',
+                        $attributeCode, $storeId, 'Could not identify created option id'));
+
+                    return null;
+                }
+
+                if ($storeId !== 0) {
+                    $dbAdapter->insert($optionValueTableName, [
+                        'option_id' => (int)$optionId,
+                        'store_id'  => 0,
+                        'value'     => $value
+                    ]);
+                }
+
+                $dbAdapter->insert($optionValueTableName, [
+                    'option_id' => (int)$optionId,
+                    'store_id'  => $storeId,
+                    'value'     => $value
+                ]);
+            } catch (Exception $exception) {
+                $this->logging->error(sprintf('Could not add option to attribute with code: %s in store with id: %d because: %s',
+                    $attributeCode, $storeId, $exception->getMessage()));
+
+                return null;
+            }
+        } else {
+            $optionId = rand(10000000, 99999999);
+        }
+
+        $key = $attribute->getAttributeCode() . '_' . $storeId;
+
+        if ( ! array_key_exists($key, $this->attributeOptionValues)) {
+            $this->getAttributeOptionValues($entityTypeCode, $attributeCode, $storeId);
+        }
+
+        if (array_key_exists($key, $this->attributeOptionValues)) {
+            $this->attributeOptionValues[ $key ][ $optionId ] = $value;
+        }
+
+        if ($storeId !== 0) {
+            $key = $attribute->getAttributeCode() . '_0';
+
+            if ( ! array_key_exists($key, $this->attributeOptionValues)) {
+                $this->getAttributeOptionValues($entityTypeCode, $attributeCode, 0);
+            }
+
+            if (array_key_exists($key, $this->attributeOptionValues)) {
+                $this->attributeOptionValues[ $key ][ $optionId ] = $value;
+            }
+        }
+
+        return $optionId;
+    }
+
+    /**
+     * @param Entity\Attribute $attribute
+     *
+     * @return \Magento\Catalog\Model\ResourceModel\Eav\Attribute
+     * @throws Exception
+     */
+    public function getCatalogCategoryAttribute(
+        Entity\Attribute $attribute): \Magento\Catalog\Model\ResourceModel\Eav\Attribute
+    {
+        $attributeCode = $attribute->getAttributeCode();
+
+        if ( ! array_key_exists($attributeCode, $this->categoryAttributes)) {
+            $this->logging->debug(sprintf('Loading catalog category attribute with code: %s', $attributeCode));
+
+            $catalogAttribute = $this->loadCatalogEavAttribute($attribute);
+
+            if ( ! $catalogAttribute || ! $catalogAttribute->getId()) {
+                throw new Exception(sprintf('Could not load catalog category attribute with code: %d', $attributeCode));
+            }
+
+            $this->categoryAttributes[ $attributeCode ] = $catalogAttribute;
+        }
+
+        return $this->categoryAttributes[ $attributeCode ];
+    }
+
+    /**
+     * @param Entity\Attribute $attribute
+     *
+     * @return \Magento\Catalog\Model\ResourceModel\Eav\Attribute
+     * @throws Exception
+     */
+    public function getCatalogProductAttribute(
+        Entity\Attribute $attribute): \Magento\Catalog\Model\ResourceModel\Eav\Attribute
+    {
+        $attributeCode = $attribute->getAttributeCode();
+
+        if ( ! array_key_exists($attributeCode, $this->productAttributes)) {
+            $this->logging->debug(sprintf('Loading catalog product attribute with code: %s', $attributeCode));
+
+            $catalogAttribute = $this->loadCatalogEavAttribute($attribute);
+
+            if ( ! $catalogAttribute || ! $catalogAttribute->getId()) {
+                throw new Exception(sprintf('Could not load catalog product attribute with code: %d', $attributeCode));
+            }
+
+            $this->productAttributes[ $attributeCode ] = $catalogAttribute;
+        }
+
+        return $this->productAttributes[ $attributeCode ];
+    }
+
+    /**
+     * @param int $attributeSetId
+     *
+     * @return Set|null
+     */
+    public function getAttributeSetById(int $attributeSetId): ?Set
+    {
+        if (array_key_exists($attributeSetId, $this->attributeSetsById)) {
+            return $this->attributeSetsById[ $attributeSetId ];
+        }
+
+        $attributeSet = $this->attributeSetFactory->create();
+
+        $this->attributeSetResourceFactory->create()->load($attributeSet, $attributeSetId);
+
+        if ($attributeSet->getId()) {
+            $this->attributeSetsById[ $attributeSet->getId() ] = $attributeSet;
+
+            $attributeSetNameKey =
+                sprintf('%d_%s', $attributeSet->getEntityTypeId(), $attributeSet->getAttributeSetName());
+
+            $this->attributeSetsByName[ $attributeSetNameKey ] = $attributeSet;
+
+            return $attributeSet;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param int    $entityTypeId
+     * @param string $attributeSetName
+     *
+     * @return Set|null
+     */
+    public function getAttributeSetByName(int $entityTypeId, string $attributeSetName): ?Set
+    {
+        $attributeSetNameKey = sprintf('%d_%s', $entityTypeId, $attributeSetName);
+
+        if (array_key_exists($attributeSetNameKey, $this->attributeSetsByName)) {
+            return $this->attributeSetsByName[ $attributeSetNameKey ];
+        }
+
+        $attributeSetCollection = $this->attributeSetCollectionFactory->create();
+
+        $attributeSetCollection->setEntityTypeFilter($entityTypeId);
+        $attributeSetCollection->addFieldToFilter('attribute_set_name', ['eq' => $attributeSetName]);
+
+        $attributeSetCollection->load();
+
+        if (count($attributeSetCollection)) {
+            /* @var Set $attributeSet */
+            $attributeSet = $attributeSetCollection->getFirstItem();
+
+            $this->attributeSetsById[ $attributeSet->getId() ] = $attributeSet;
+            $this->attributeSetsByName[ $attributeSetNameKey ] = $attributeSet;
+
+            return $attributeSet;
+        }
+
+        return null;
     }
 }

@@ -38,6 +38,9 @@ class Category
     /** @var Seo */
     protected $seoHelper;
 
+    /** @var EntityType */
+    protected $entityTypeHelper;
+
     /** @var LoggerInterface */
     protected $logging;
 
@@ -65,6 +68,9 @@ class Category
     /* @var string[] */
     private $categoryUrlPaths = [];
 
+    /** @var array */
+    private $subCategoryIds = [];
+
     /**
      * @param Arrays                                               $arrayHelper
      * @param Variables                                            $variableHelper
@@ -72,6 +78,7 @@ class Category
      * @param Attribute                                            $attributeHelper
      * @param Database                                             $databaseHelper
      * @param Seo                                                  $seoHelper
+     * @param EntityType                                           $entityTypeHelper
      * @param LoggerInterface                                      $logging
      * @param CategoryFactory                                      $categoryFactory
      * @param \Magento\Catalog\Model\ResourceModel\CategoryFactory $categoryResourceFactory
@@ -84,6 +91,7 @@ class Category
         Attribute $attributeHelper,
         Database $databaseHelper,
         Seo $seoHelper,
+        EntityType $entityTypeHelper,
         LoggerInterface $logging,
         CategoryFactory $categoryFactory,
         \Magento\Catalog\Model\ResourceModel\CategoryFactory $categoryResourceFactory,
@@ -95,6 +103,7 @@ class Category
         $this->attributeHelper = $attributeHelper;
         $this->databaseHelper = $databaseHelper;
         $this->seoHelper = $seoHelper;
+        $this->entityTypeHelper = $entityTypeHelper;
 
         $this->logging = $logging;
         $this->categoryFactory = $categoryFactory;
@@ -155,7 +164,7 @@ class Category
      * @return array
      * @throws Exception
      */
-    public function getActiveCategoryIds(AdapterInterface $dbAdapter,int $storeId, bool $limitToStore = true): array
+    public function getActiveCategoryIds(AdapterInterface $dbAdapter, int $storeId, bool $limitToStore = true): array
     {
         if ($limitToStore) {
             $store = $this->storeHelper->getStore($storeId);
@@ -170,7 +179,8 @@ class Category
 
             $rootCategoryIds = $this->databaseHelper->fetchCol($rootCategoryQuery, $dbAdapter);
 
-            $activeCategoryIds = $this->getChildEntityIds($dbAdapter, $rootCategoryIds, false, true, false, true, $storeId);
+            $activeCategoryIds =
+                $this->getChildEntityIds($dbAdapter, $rootCategoryIds, false, true, false, true, $storeId);
         }
 
         return $activeCategoryIds;
@@ -297,8 +307,8 @@ class Category
 
             if ($recursive && ! $this->variableHelper->isEmpty($childIds)) {
                 $childIds = array_merge($childIds,
-                    $this->getChildEntityIds($dbAdapter, $childIds, $orderByPosition, $recursive, $includeInactiveCategories,
-                        $useCache, $storeId));
+                    $this->getChildEntityIds($dbAdapter, $childIds, $orderByPosition, $recursive,
+                        $includeInactiveCategories, $useCache, $storeId));
             }
 
             $this->childEntityIds[ $key ] = $childIds;
@@ -388,7 +398,8 @@ class Category
         $key = sprintf('%d_%d', $categoryId, $storeId);
 
         if ( ! array_key_exists($key, $this->categoryNames)) {
-            $attributeId = $this->attributeHelper->getAttributeId($dbAdapter, \Magento\Catalog\Model\Category::ENTITY, 'name');
+            $attributeId =
+                $this->attributeHelper->getAttributeId($dbAdapter, \Magento\Catalog\Model\Category::ENTITY, 'name');
 
             $tableName = $this->databaseHelper->getTableName('catalog_category_entity');
 
@@ -541,5 +552,46 @@ class Category
         }
 
         return null;
+    }
+
+    /**
+     * @return int|null
+     * @throws LocalizedException
+     */
+    public function getDefaultAttributeSetId(): ?int
+    {
+        $categoryEntityType = $this->entityTypeHelper->getCategoryEntityType();
+
+        return empty($categoryEntityType) ? null : (int)$categoryEntityType->getDefaultAttributeSetId();
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param int              $parentCategoryId
+     *
+     * @return array
+     */
+    public function getSubCategoryIds(AdapterInterface $dbAdapter, int $parentCategoryId): array
+    {
+        if (array_key_exists($parentCategoryId, $this->subCategoryIds)) {
+            return $this->subCategoryIds[ $parentCategoryId ];
+        }
+
+        $tableName = $this->databaseHelper->getTableName('catalog_category_entity');
+
+        $categoryQuery = $dbAdapter->select()->from(['category' => $tableName], ['entity_id']);
+
+        $categoryQuery->where($dbAdapter->prepareSqlCondition('category.path', ['like' => "%/$parentCategoryId/%"]),
+            null, Select::TYPE_CONDITION);
+
+        $subCategoryIds = $this->databaseHelper->fetchCol($categoryQuery, $dbAdapter);
+
+        if ( ! empty($subCategoryIds)) {
+            $this->subCategoryIds[ $parentCategoryId ] = $subCategoryIds;
+
+            return $this->subCategoryIds[ $parentCategoryId ];
+        }
+
+        return [];
     }
 }

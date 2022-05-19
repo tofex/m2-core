@@ -6,12 +6,14 @@ use Exception;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Media\Config;
 use Magento\Catalog\Model\ProductFactory;
+use Magento\Catalog\Model\ProductTypes\ConfigInterface;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use Psr\Log\LoggerInterface;
 use Tofex\Help\Arrays;
+use Zend_Db_Select;
 
 /**
  * @author      Andreas Knollmann
@@ -44,15 +46,32 @@ class Product
     /** @var Config */
     protected $productMediaConfig;
 
+    /** @var \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\CollectionFactory */
+    protected $configurableAttributeCollectionFactory;
+
+    /** @var ConfigInterface */
+    protected $config;
+
+    /** @var array */
+    private $entitySkus = [];
+
+    /** @var array */
+    private $websiteIds = [];
+
+    /** @var array */
+    private $types;
+
     /**
-     * @param Arrays                                              $arrayHelper
-     * @param Attribute                                           $attributeHelper
-     * @param Database                                            $databaseHelper
-     * @param LoggerInterface                                     $logging
-     * @param ProductFactory                                      $productFactory
-     * @param \Magento\Catalog\Model\ResourceModel\ProductFactory $productResourceFactory
-     * @param CollectionFactory                                   $productCollectionFactory
-     * @param Config                                              $productMediaConfig
+     * @param Arrays                                                                                                 $arrayHelper
+     * @param Attribute                                                                                              $attributeHelper
+     * @param Database                                                                                               $databaseHelper
+     * @param LoggerInterface                                                                                        $logging
+     * @param ProductFactory                                                                                         $productFactory
+     * @param \Magento\Catalog\Model\ResourceModel\ProductFactory                                                    $productResourceFactory
+     * @param CollectionFactory                                                                                      $productCollectionFactory
+     * @param Config                                                                                                 $productMediaConfig
+     * @param \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\CollectionFactory $configurableAttributeCollectionFactory
+     * @param ConfigInterface                                                                                        $config
      */
     public function __construct(
         Arrays $arrayHelper,
@@ -62,7 +81,9 @@ class Product
         ProductFactory $productFactory,
         \Magento\Catalog\Model\ResourceModel\ProductFactory $productResourceFactory,
         CollectionFactory $productCollectionFactory,
-        Config $productMediaConfig)
+        Config $productMediaConfig,
+        \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\CollectionFactory $configurableAttributeCollectionFactory,
+        ConfigInterface $config)
     {
         $this->arrayHelper = $arrayHelper;
         $this->attributeHelper = $attributeHelper;
@@ -73,6 +94,8 @@ class Product
         $this->productResourceFactory = $productResourceFactory;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->productMediaConfig = $productMediaConfig;
+        $this->configurableAttributeCollectionFactory = $configurableAttributeCollectionFactory;
+        $this->config = $config;
     }
 
     /**
@@ -425,5 +448,219 @@ class Product
     {
         return $this->getChildIds($dbAdapter, $parentIds, $excludeInactive, $excludeOutOfStock, $maintainAssociation,
             false, $includeParents, $storeId);
+    }
+
+    /**
+     * @return \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\Collection
+     */
+    public function getConfigurableAttributeCollection(): \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\Collection
+    {
+        return $this->configurableAttributeCollectionFactory->create();
+    }
+
+    /**
+     * @param array $entityIds
+     * @param bool  $keepAssociation
+     *
+     * @return array
+     */
+    public function determineSKUs(array $entityIds, bool $keepAssociation = false): array
+    {
+        $skus = [];
+
+        $this->logging->debug(sprintf('Determining skus for %d entity id(s)', count($entityIds)));
+
+        foreach ($entityIds as $key => $entityId) {
+            if (array_key_exists($entityId, $this->entitySkus)) {
+                $skus[ $key ] = $this->entitySkus[ $entityId ];
+
+                unset($entityIds[ $key ]);
+            }
+        }
+
+        $this->logging->debug(sprintf('Searching skus for %d entity id(s)', count($entityIds)));
+
+        if ( ! empty($entityIds)) {
+            $entityIdChunks = array_chunk($entityIds, 1000, true);
+
+            foreach ($entityIdChunks as $entityIdChunk) {
+                $productCollection = $this->getProductCollection();
+
+                $productCollection->getSelect()->reset(Zend_Db_Select::COLUMNS);
+                $productCollection->getSelect()->columns([
+                    'entity_id',
+                    'sku'
+                ]);
+
+                $productCollection->addAttributeToFilter('entity_id', ['in' => $entityIdChunk]);
+
+                $productData = $this->databaseHelper->fetchAssoc($productCollection->getSelect());
+
+                foreach ($entityIdChunk as $elementNumber => $entityId) {
+                    if (array_key_exists($entityId, $productData) &&
+                        array_key_exists('sku', $productData[ $entityId ])) {
+                        $skus[ $keepAssociation ? $entityId : $elementNumber ] = $productData[ $entityId ][ 'sku' ];
+
+                        $this->entitySkus[ $entityId ] = $productData[ $entityId ][ 'sku' ];
+                    }
+                }
+            }
+        }
+
+        $this->logging->debug(sprintf('Found %d sku(s)', count($skus)));
+
+        return $skus;
+    }
+
+    /**
+     * @param array $skus
+     *
+     * @return array
+     */
+    public function determineEntityIds(array $skus): array
+    {
+        $entityIds = [];
+
+        $this->logging->debug(sprintf('Determining entity ids for %d sku(s)', count($skus)));
+
+        $entitySkus = array_flip($this->entitySkus);
+
+        foreach ($skus as $key => $sku) {
+            $entityId = array_key_exists($sku, $entitySkus) ? $entitySkus[ $sku ] : false;
+
+            if ($entityId !== false) {
+                $entityIds[ $key ] = $entityId;
+
+                unset($skus[ $key ]);
+            }
+        }
+
+        $this->logging->debug(sprintf('Searching entity ids for %d sku(s)', count($skus)));
+
+        if ( ! empty($skus)) {
+            $skuChunks = array_chunk($skus, 1000, true);
+
+            foreach ($skuChunks as $skuChunk) {
+                $productCollection = $this->getProductCollection();
+
+                $productCollection->getSelect()->reset(Zend_Db_Select::COLUMNS);
+                $productCollection->getSelect()->columns([
+                    'sku',
+                    'entity_id'
+                ]);
+
+                $productCollection->addAttributeToFilter('sku', ['in' => $skuChunk]);
+
+                $productData = $this->databaseHelper->fetchAssoc($productCollection->getSelect());
+
+                foreach ($skuChunk as $elementNumber => $sku) {
+                    if (array_key_exists($sku, $productData) && array_key_exists('entity_id', $productData[ $sku ])) {
+                        $entityIds[ $elementNumber ] = $productData[ $sku ][ 'entity_id' ];
+
+                        $this->entitySkus[ $productData[ $sku ][ 'entity_id' ] ] = $sku;
+                    }
+                }
+            }
+        }
+
+        $this->logging->debug(sprintf('Found %d entity id(s)', count($entityIds)));
+
+        return $entityIds;
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param array            $childIds
+     * @param bool             $maintainAssociation
+     * @param bool             $useSuperLink
+     * @param bool             $includeChildren
+     *
+     * @return array
+     */
+    public function getParentIds(
+        AdapterInterface $dbAdapter,
+        array $childIds,
+        bool $maintainAssociation = false,
+        bool $useSuperLink = true,
+        bool $includeChildren = false): array
+    {
+        $this->logging->debug(sprintf('Searching parent ids for child id(s): %s', implode(', ', $childIds)));
+
+        $tableName = $this->databaseHelper->getTableName($useSuperLink ? 'catalog_product_super_link' :
+            'catalog_product_relation');
+
+        $childColumnName = $useSuperLink ? 'product_id' : 'child_id';
+
+        $superLinkQuery = $dbAdapter->select()->from([$tableName], [
+            'parent_id',
+            $childColumnName
+        ]);
+
+        $superLinkQuery->where($dbAdapter->prepareSqlCondition($childColumnName, ['in' => $childIds]), null,
+            Select::TYPE_CONDITION);
+
+        if ($includeChildren) {
+            // in case parent ids are included in the child id list
+            $superLinkQuery->orWhere($dbAdapter->prepareSqlCondition('parent_id', ['in' => $childIds]), null,
+                Select::TYPE_CONDITION);
+        }
+
+        $queryResult = $this->databaseHelper->fetchAssoc($superLinkQuery);
+
+        if ($maintainAssociation) {
+            $parentIds = array_values($queryResult);
+        } else {
+            $parentIds = array_keys($queryResult);
+        }
+
+        $parentIds = array_map('intval', $parentIds);
+
+        $this->logging->debug(sprintf('Found %d parent id(s)', count($parentIds)));
+
+        return $parentIds;
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param int              $productId
+     *
+     * @return array
+     */
+    public function getWebsiteIds(AdapterInterface $dbAdapter, int $productId): array
+    {
+        if ( ! array_key_exists($productId, $this->websiteIds)) {
+            $tableName = $this->databaseHelper->getTableName('catalog_product_website');
+
+            $websiteQuery = $dbAdapter->select()->from([$tableName], ['website_id']);
+
+            $websiteQuery->where($dbAdapter->prepareSqlCondition('product_id', ['eq' => $productId]), null,
+                Select::TYPE_CONDITION);
+
+            $queryResult = $this->databaseHelper->fetchAssoc($websiteQuery);
+
+            $this->websiteIds[ $productId ] = array_keys($queryResult);
+        }
+
+        return $this->websiteIds[ $productId ];
+    }
+
+    /**
+     * Get product types
+     *
+     * @return array
+     */
+    public function getTypes(): array
+    {
+        if ($this->types === null) {
+            $productTypes = $this->config->getAll();
+
+            foreach ($productTypes as $productTypeKey => $productTypeConfig) {
+                $productTypes[ $productTypeKey ][ 'label' ] = __($productTypeConfig[ 'label' ]);
+            }
+
+            $this->types = $productTypes;
+        }
+
+        return $this->types;
     }
 }
