@@ -4,11 +4,12 @@ namespace Tofex\Core\Helper;
 
 use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
+use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment\Track;
 use Magento\Sales\Model\Order\Shipment\TrackFactory;
+use Magento\Sales\Model\Order\ShipmentFactory;
 use Magento\Sales\Model\ResourceModel\Order\Shipment\Collection;
 use Magento\Sales\Model\ResourceModel\Order\Shipment\CollectionFactory;
-use Magento\Sales\Model\ResourceModel\Order\ShipmentFactory;
 
 /**
  * @author      Andreas Knollmann
@@ -21,6 +22,9 @@ class Shipment
     protected $shipmentRepository;
 
     /** @var ShipmentFactory */
+    protected $shipmentFactory;
+
+    /** @var \Magento\Sales\Model\ResourceModel\Order\ShipmentFactory */
     protected $shipmentResourceFactory;
 
     /** @var CollectionFactory */
@@ -37,7 +41,8 @@ class Shipment
 
     /**
      * @param ShipmentRepositoryInterface                                               $shipmentRepository
-     * @param ShipmentFactory                                                           $shipmentResourceFactory
+     * @param ShipmentFactory                                                           $shipmentFactory
+     * @param \Magento\Sales\Model\ResourceModel\Order\ShipmentFactory                  $shipmentResourceFactory
      * @param CollectionFactory                                                         $shipmentCollectionFactory
      * @param TrackFactory                                                              $shipmentTrackFactory
      * @param \Magento\Sales\Model\ResourceModel\Order\Shipment\TrackFactory            $shipmentTrackResourceFactory
@@ -45,13 +50,15 @@ class Shipment
      */
     public function __construct(
         ShipmentRepositoryInterface $shipmentRepository,
-        ShipmentFactory $shipmentResourceFactory,
+        ShipmentFactory $shipmentFactory,
+        \Magento\Sales\Model\ResourceModel\Order\ShipmentFactory $shipmentResourceFactory,
         CollectionFactory $shipmentCollectionFactory,
         TrackFactory $shipmentTrackFactory,
         \Magento\Sales\Model\ResourceModel\Order\Shipment\TrackFactory $shipmentTrackResourceFactory,
         \Magento\Sales\Model\ResourceModel\Order\Shipment\Track\CollectionFactory $shipmentTrackCollectionFactory)
     {
         $this->shipmentRepository = $shipmentRepository;
+        $this->shipmentFactory = $shipmentFactory;
         $this->shipmentResourceFactory = $shipmentResourceFactory;
         $this->shipmentCollectionFactory = $shipmentCollectionFactory;
         $this->shipmentTrackFactory = $shipmentTrackFactory;
@@ -60,9 +67,9 @@ class Shipment
     }
 
     /**
-     * @return \Magento\Sales\Model\Order\Shipment
+     * @return Order\Shipment
      */
-    public function newShipment(): \Magento\Sales\Model\Order\Shipment
+    public function newShipment(): Order\Shipment
     {
         return $this->shipmentRepository->create();
     }
@@ -70,9 +77,9 @@ class Shipment
     /**
      * @param int $shipmentId
      *
-     * @return \Magento\Sales\Model\Order\Shipment
+     * @return Order\Shipment
      */
-    public function loadShipment(int $shipmentId): \Magento\Sales\Model\Order\Shipment
+    public function loadShipment(int $shipmentId): Order\Shipment
     {
         $shipment = $this->newShipment();
 
@@ -82,11 +89,11 @@ class Shipment
     }
 
     /**
-     * @param \Magento\Sales\Model\Order\Shipment $shipment
+     * @param Order\Shipment $shipment
      *
      * @throws AlreadyExistsException
      */
-    public function saveShipment(\Magento\Sales\Model\Order\Shipment $shipment)
+    public function saveShipment(Order\Shipment $shipment)
     {
         $this->shipmentResourceFactory->create()->save($shipment);
     }
@@ -105,5 +112,23 @@ class Shipment
     public function newShipmentTrack(): Track
     {
         return $this->shipmentTrackFactory->create();
+    }
+
+    /**
+     * Prepare order shipment based on order items and requested items qty
+     *
+     * @param Order $order
+     * @param array $qtys   array with mappings of item-ids to quantity
+     * @param array $tracks array with arrays of mappings
+     *                      (keys from ShipmentTrackInterface, eg TRACK_NUMBER, CARRIER_CODE, TITLE)
+     *
+     * @return Order\Shipment
+     */
+    public function prepareShipment(Order $order, array $qtys = [], array $tracks = []): Order\Shipment
+    {
+        /** @var Order\Shipment $shipment */
+        $shipment = $this->shipmentFactory->create($order, $qtys, $tracks);
+
+        return $shipment;
     }
 }
