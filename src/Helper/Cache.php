@@ -5,6 +5,7 @@ namespace Tofex\Core\Helper;
 use Magento\Framework\App\Cache\TypeListInterface;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\Config\ReinitableConfigInterface;
+use Magento\PageCache\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,22 +27,28 @@ class Cache
     /** @var CacheInterface */
     protected $cache;
 
+    /** @var Config */
+    protected $pageCacheConfig;
+
     /**
      * @param LoggerInterface           $logging
      * @param TypeListInterface         $typeList
      * @param ReinitableConfigInterface $reinitableConfig
      * @param CacheInterface            $cache
+     * @param Config                    $pageCacheConfig
      */
     public function __construct(
         LoggerInterface $logging,
         TypeListInterface $typeList,
         ReinitableConfigInterface $reinitableConfig,
-        CacheInterface $cache)
+        CacheInterface $cache,
+        Config $pageCacheConfig)
     {
         $this->logging = $logging;
         $this->typeList = $typeList;
         $this->reinitableConfig = $reinitableConfig;
         $this->cache = $cache;
+        $this->pageCacheConfig = $pageCacheConfig;
     }
 
     /**
@@ -73,9 +80,11 @@ class Cache
      */
     public function cleanFullPageCache()
     {
-        $this->logging->info('Cleaning full page cache');
+        if ($this->pageCacheConfig->isEnabled()) {
+            $this->logging->info('Cleaning full page cache');
 
-        $this->typeList->cleanType('full_page');
+            $this->typeList->cleanType('full_page');
+        }
     }
 
     /**
