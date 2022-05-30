@@ -32,11 +32,11 @@ class Files
     protected $file;
 
     /**
-     * @param Variables $variableHelper
-     * @param \Tofex\Help\Files     $fileHelper
-     * @param LoggerInterface       $logging
-     * @param DirectoryList         $directoryList
-     * @param File                  $file
+     * @param Variables         $variableHelper
+     * @param \Tofex\Help\Files $fileHelper
+     * @param LoggerInterface   $logging
+     * @param DirectoryList     $directoryList
+     * @param File              $file
      */
     public function __construct(
         Variables $variableHelper,
@@ -76,6 +76,49 @@ class Files
         $this->logging->debug(sprintf('Determined absolute path: %s', $path));
 
         return $path;
+    }
+
+    /**
+     * Method to read Files from directory
+     *
+     * @param string $path
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function determineFilesFromFilePath(string $path): array
+    {
+        return $this->determineFromFilePath($path, true, false);
+    }
+
+    /**
+     * Method to read Files from directory
+     *
+     * @param string $path
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function determineDirectoriesFromFilePath(string $path): array
+    {
+        return $this->determineFromFilePath($path, false);
+    }
+
+    /**
+     * @param string $path
+     * @param bool   $includeFiles
+     * @param bool   $includeDirectories
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function determineFromFilePath(
+        string $path,
+        bool $includeFiles = true,
+        bool $includeDirectories = true): array
+    {
+        return $this->fileHelper->determineFromFilePath($path, $this->directoryList->getRoot(), $includeFiles,
+            $includeDirectories);
     }
 
     /**
