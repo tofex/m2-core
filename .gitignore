@@ -1,7 +1,8 @@
 /.idea/
 /.vagrant/
+/dosys/
 /generated/
-/var/
-/vagrant
+/vagrant/
 /Vagrantfile
+/var/
 /vendor/
