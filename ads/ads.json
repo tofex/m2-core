@@ -1,0 +1,31 @@
+{
+    "require": [
+        "webserver_php_magento-module-demo.json",
+        "database_magento2-module-demo.json",
+        "mailcatcher_magento.json",
+        "magento2-module-demo.json"
+    ],
+    "global": {
+        "systemName": "m2_core",
+        "webServerType": "apache_php",
+        "webServerVersion": "2.4",
+        "phpVersion": "7.3",
+        "magentoVersion": "2.3.7",
+        "magentoEdition": "community",
+        "mailCatcherVersion": "0.6",
+        "databaseType": "mysql",
+        "databaseVersion": "5.7"
+    },
+    "ws": {
+        "containerVolumes": [
+            "..:/var/www/magento/module:www-data:w",
+            "../src:/var/www/magento/htdocs/app/code/Tofex/Core:www-data",
+            "../generated:/var/www/magento/source/generated:www-data:w",
+            "../var/export:/var/www/magento/htdocs/var/export:www-data:w",
+            "../var/import:/var/www/magento/htdocs/var/import:www-data:w",
+            "../var/log:/var/www/magento/htdocs/var/log:www-data:w",
+            "../var/report:/var/www/magento/htdocs/var/report:www-data:w",
+            "../vendor:/var/www/magento/source/vendor:www-data:w"
+        ]
+    }
+}
