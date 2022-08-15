@@ -70,4 +70,31 @@ class Xml
 
         $xmlWriter->write($rootElement, $rootElementAttributes, $data, $append, $version, $encoding);
     }
+
+    /**
+     * @param string $rootElement
+     * @param array  $rootElementAttributes
+     * @param array  $data
+     * @param array  $characterDataElements
+     * @param string $version
+     * @param string $encoding
+     *
+     * @return string
+     */
+    public function output(
+        string $rootElement,
+        array $rootElementAttributes,
+        array $data,
+        array $characterDataElements = [],
+        string $version = '1.0',
+        string $encoding = 'UTF-8'): string
+    {
+        $xmlWriter = new Writer($this->filesHelper, $this->arrayHelper);
+
+        foreach ($characterDataElements as $characterDataElement) {
+            $xmlWriter->addForceCharacterData($characterDataElement);
+        }
+
+        return $xmlWriter->output($rootElement, $rootElementAttributes, $data, $version, $encoding);
+    }
 }
