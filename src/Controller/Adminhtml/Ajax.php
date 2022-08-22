@@ -113,6 +113,15 @@ abstract class Ajax
     /**
      * @param string $message
      */
+    protected function setSuccessResponse(string $message)
+    {
+        $this->responseResult = true;
+        $this->responseValues = ['message' => $message];
+    }
+
+    /**
+     * @param string $message
+     */
     protected function setErrorResponse(string $message)
     {
         $this->responseResult = false;

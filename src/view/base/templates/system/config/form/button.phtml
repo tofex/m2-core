@@ -1,0 +1,29 @@
+<?php
+
+use Magento\Framework\View\TemplateEngine\Php;
+use Tofex\Core\Block\Adminhtml\System\Config\Form\AjaxButton;
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2022 Tofex UG (http://www.tofex.de)
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+/** @var Php $this */
+/** @var AjaxButton $block */
+?>
+<button class="ajax-button" type="button" id="<?= $block->getButtonId(); ?>">
+    <span><?php echo $block->escapeHtml($block->getButtonLabel()); ?></span>
+</button>
+<script type="text/x-magento-init">
+    {
+        "#<?php echo $block->getButtonId(); ?>": {
+            "tofex/ajax-button": {
+                "formKey": "<?= $block->getFormKey(); ?>",
+                "buttonId": "<?php echo $block->getButtonId(); ?>",
+                "ajaxUrl": "<?= $block->getAjaxUrl(); ?>",
+                "dataHtmlIds": "<?= $block->getDataHtmlIds(); ?>"
+            }
+        }
+    }
+</script>
