@@ -6,6 +6,9 @@ use Exception;
 use Magento\Framework\Filesystem\DirectoryList;
 use Tofex\Help\Arrays;
 use Tofex\Help\Files;
+use Tofex\Help\Variables;
+use Tofex\Xml\Reader;
+use Tofex\Xml\SimpleXml;
 use Tofex\Xml\Writer;
 
 /**
@@ -21,20 +24,56 @@ class Xml
     /** @var Arrays */
     protected $arrayHelper;
 
+    /** @var Variables */
+    protected $variableHelper;
+
     /** @var DirectoryList */
     protected $directoryList;
 
     /**
      * @param Files         $filesHelper
      * @param Arrays        $arrayHelper
+     * @param Variables     $variableHelper
      * @param DirectoryList $directoryList
      */
-    public function __construct(Files $filesHelper, Arrays $arrayHelper, DirectoryList $directoryList)
+    public function __construct(
+        Files $filesHelper,
+        Arrays $arrayHelper,
+        Variables $variableHelper,
+        DirectoryList $directoryList)
     {
         $this->filesHelper = $filesHelper;
         $this->arrayHelper = $arrayHelper;
+        $this->variableHelper = $variableHelper;
 
         $this->directoryList = $directoryList;
+    }
+
+    /**
+     * @param string $basePath
+     * @param string $fileName
+     * @param bool   $removeEmptyElements
+     * @param int    $retries
+     * @param int    $retryPause
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function read(
+        string $basePath,
+        string $fileName,
+        bool $removeEmptyElements = true,
+        int $retries = 0,
+        int $retryPause = 250): array
+    {
+        $simpleXml = new SimpleXml($this->variableHelper);
+
+        $xmlReader = new Reader($this->filesHelper, $this->arrayHelper, $simpleXml);
+
+        $xmlReader->setBasePath($basePath);
+        $xmlReader->setFileName($fileName);
+
+        return $xmlReader->read($removeEmptyElements, $retries, $retryPause);
     }
 
     /**
