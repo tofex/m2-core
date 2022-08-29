@@ -123,6 +123,8 @@ class Files
 
     /**
      * @return string
+     * @noinspection PhpRedundantCatchClauseInspection
+     * @noinspection RedundantSuppression
      */
     public function getTempDir(): string
     {

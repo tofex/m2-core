@@ -100,7 +100,7 @@ class Customer
 
         try {
             $customer->loadByEmail($customerEmail);
-        } /** @noinspection PhpRedundantCatchClauseInspection */ catch (LocalizedException $exception) {
+        } /** @noinspection PhpRedundantCatchClauseInspection,RedundantSuppression */ catch (LocalizedException $exception) {
             $this->logging->error($exception);
         }
 

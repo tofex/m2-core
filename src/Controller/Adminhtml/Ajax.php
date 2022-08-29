@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpDeprecationInspection */
 
 namespace Tofex\Core\Controller\Adminhtml;
 

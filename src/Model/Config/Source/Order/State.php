@@ -2,7 +2,7 @@
 
 namespace Tofex\Core\Model\Config\Source\Order;
 
-use Magento\Framework\Option\ArrayInterface;
+use Magento\Framework\Data\OptionSourceInterface;
 use Magento\Sales\Model\Order\Config;
 
 /**
@@ -11,7 +11,7 @@ use Magento\Sales\Model\Order\Config;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class State
-    implements ArrayInterface
+    implements OptionSourceInterface
 {
     /** @var Config */
     protected $orderConfig;

@@ -272,6 +272,8 @@ class Stores
      *
      * @return Store
      * @throws NoSuchEntityException
+     * @noinspection PhpDocRedundantThrowsInspection
+     * @noinspection RedundantSuppression
      */
     public function getStore(int $storeId = null): Store
     {
