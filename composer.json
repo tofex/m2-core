@@ -2,7 +2,7 @@
     "name": "tofex/m2-core",
     "description": "Tofex Magento 2 Core",
     "type": "magento2-module",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "license": "MIT",
     "keywords": [
         "Magento"
@@ -21,6 +21,9 @@
         "magento/framework": "~101.0.0|~102.0.0|~103.0.0",
         "tofex/help": "~1.1",
         "tofex/xml": "~1.0"
+    },
+    "conflict": {
+        "tofex/m2-util": "*"
     },
     "autoload": {
         "files": [
