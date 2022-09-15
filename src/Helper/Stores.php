@@ -13,10 +13,10 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Asset\Repository;
-use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
@@ -45,6 +45,9 @@ class Stores
     /** @var Database */
     protected $databaseHelper;
 
+    /** @var Instances */
+    protected $instanceHelper;
+
     /** @var LoggerInterface */
     protected $logging;
 
@@ -66,11 +69,15 @@ class Stores
     /** @var PriceCurrencyInterface */
     protected $priceCurrency;
 
+    /** @var ResolverInterface */
+    protected $localeResolver;
+
     /**
      * @param Context                $context
      * @param Variables              $variableHelper
      * @param Arrays                 $arrayHelper
      * @param Database               $databaseHelper
+     * @param Instances              $instanceHelper
      * @param LoggerInterface        $logging
      * @param StoreManagerInterface  $storeManager
      * @param ConfigFactory          $configFactory
@@ -84,6 +91,7 @@ class Stores
         Variables $variableHelper,
         Arrays $arrayHelper,
         Database $databaseHelper,
+        Instances $instanceHelper,
         LoggerInterface $logging,
         StoreManagerInterface $storeManager,
         ConfigFactory $configFactory,
@@ -97,6 +105,7 @@ class Stores
         $this->variableHelper = $variableHelper;
         $this->arrayHelper = $arrayHelper;
         $this->databaseHelper = $databaseHelper;
+        $this->instanceHelper = $instanceHelper;
 
         $this->logging = $logging;
         $this->storeManager = $storeManager;
@@ -268,14 +277,14 @@ class Stores
     }
 
     /**
-     * @param int|null $storeId
+     * @param int|string|null $storeId
      *
      * @return Store
      * @throws NoSuchEntityException
      * @noinspection PhpDocRedundantThrowsInspection
      * @noinspection RedundantSuppression
      */
-    public function getStore(int $storeId = null): Store
+    public function getStore($storeId = null): Store
     {
         /** @var Store $store */
         $store = $this->storeManager->getStore($storeId);
@@ -299,7 +308,7 @@ class Stores
     }
 
     /**
-     * @param null|bool|int|string|WebsiteInterface $websiteId
+     * @param int|string|null $websiteId
      *
      * @return Website
      * @throws LocalizedException
@@ -558,5 +567,17 @@ class Stores
         }
 
         return $value;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocale(): string
+    {
+        if ($this->localeResolver === null) {
+            $this->localeResolver = $this->instanceHelper->getSingleton(ResolverInterface::class);
+        }
+
+        return $this->localeResolver->getLocale();
     }
 }
