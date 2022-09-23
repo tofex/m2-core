@@ -35,19 +35,19 @@ class Setup
     }
 
     /**
-     * @param EavSetup $setup
-     * @param string   $entityTypeName
-     * @param string   $entityTypeModel
-     * @param string   $attributeModel
-     * @param string   $attributeCollectionModel
-     * @param string   $entityTypeTableName
+     * @param EavSetup    $setup
+     * @param string      $entityTypeName
+     * @param string      $entityTypeModel
+     * @param string|null $attributeModel
+     * @param string|null $attributeCollectionModel
+     * @param string      $entityTypeTableName
      */
     public function addEntityType(
         EavSetup $setup,
         string $entityTypeName,
         string $entityTypeModel,
-        string $attributeModel,
-        string $attributeCollectionModel,
+        ?string $attributeModel,
+        ?string $attributeCollectionModel,
         string $entityTypeTableName)
     {
         $entityType = $setup->getEntityType($entityTypeName);
