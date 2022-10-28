@@ -44,6 +44,9 @@ class Categories
 
         $options = [['value' => '', 'label' => __('--Please Select--')]];
 
+        $spaceChar = "\u{2003}";
+        $arrowChar = "\u{2937}";
+
         /** @var Node $node */
         foreach ($nodes as $node) {
             $categoryId = $node->getData('entity_id');
@@ -53,7 +56,7 @@ class Categories
 
             $options[] = [
                 'value' => $categoryId,
-                'label' => sprintf('%s %s', str_repeat('&nbsp;&nbsp;', $level), $category->getName())
+                'label' => sprintf('%s%s %s', str_repeat($spaceChar, $level), $arrowChar, $category->getName())
             ];
         }
 
@@ -73,6 +76,9 @@ class Categories
 
         $options = [];
 
+        $spaceChar = "\u{2003}";
+        $arrowChar = "\u{2937}";
+
         /** @var Node $node */
         foreach ($nodes as $node) {
             $categoryId = $node->getData('entity_id');
@@ -80,7 +86,8 @@ class Categories
 
             $category = $this->objectHelper->loadCategory($categoryId);
 
-            $options[ $categoryId ] = sprintf('%s %s', str_repeat('&nbsp;&nbsp;', $level), $category->getName());
+            $options[ $categoryId ] =
+                sprintf('%s%s %s', str_repeat($spaceChar, $level), $arrowChar, $category->getName());
         }
 
         return $options;
