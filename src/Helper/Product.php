@@ -61,6 +61,9 @@ class Product
     /** @var array */
     private $types;
 
+    /** @var array */
+    private $categoryIds = [];
+
     /**
      * @param Arrays                                                                                                 $arrayHelper
      * @param Attribute                                                                                              $attributeHelper
@@ -662,5 +665,46 @@ class Product
         }
 
         return $this->types;
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param array            $productIds
+     *
+     * @return array
+     */
+    public function getCategoryIds(AdapterInterface $dbAdapter, array $productIds): array
+    {
+        $result = [];
+
+        $loadProductIds = [];
+
+        foreach ($productIds as $productId) {
+            if (array_key_exists($productId, $this->categoryIds)) {
+                $result[ $productId ] = $this->categoryIds[ $productId ];
+            } else {
+                $loadProductIds[] = $productId;
+            }
+        }
+
+        if ( ! empty($loadProductIds)) {
+            $categoryQuery =
+                $this->databaseHelper->select($this->databaseHelper->getTableName('catalog_category_product'),
+                    ['product_id', 'category_id']);
+
+            $categoryQuery->where('product_id IN (?)', $loadProductIds);
+
+            $queryResult = $this->databaseHelper->fetchAll($categoryQuery, $dbAdapter);
+
+            foreach ($queryResult as $row) {
+                $productId = $this->arrayHelper->getValue($row, 'product_id');
+                $categoryId = $this->arrayHelper->getValue($row, 'category_id');
+
+                $this->categoryIds[ $productId ][] = $categoryId;
+                $result[ $productId ][] = $categoryId;
+            }
+        }
+
+        return $result;
     }
 }

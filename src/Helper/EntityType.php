@@ -91,6 +91,17 @@ class EntityType
     }
 
     /**
+     * @return int
+     * @throws LocalizedException
+     */
+    public function getCategoryEntityTypeId(): ?int
+    {
+        $categoryEntityType = $this->getCategoryEntityType();
+
+        return empty($categoryEntityType) ? null : $categoryEntityType->getId();
+    }
+
+    /**
      * @return string|null
      * @throws LocalizedException
      */
