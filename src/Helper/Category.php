@@ -57,6 +57,9 @@ class Category
     private $parentEntityIds = [];
 
     /** @var array */
+    private $pathEntityIds = [];
+
+    /** @var array */
     private $childEntityIds = [];
 
     /** @var string[] */
@@ -191,6 +194,7 @@ class Category
      * @param array            $childIds
      * @param int              $minLevel
      * @param bool             $useCache
+     * @param bool             $groupByChild
      *
      * @return array
      */
@@ -198,33 +202,107 @@ class Category
         AdapterInterface $dbAdapter,
         array $childIds,
         int $minLevel = 0,
-        bool $useCache = false): array
+        bool $useCache = false,
+        bool $groupByChild = false): array
     {
-        $this->logging->debug(sprintf('Searching parent ids for child id(s): %s', implode(', ', $childIds)));
+        $this->logging->debug(sprintf('Getting parent entity ids for child id(s): %s', implode(', ', $childIds)));
 
-        $key = md5(json_encode([$childIds, $minLevel]));
+        $result = [];
 
-        if ( ! array_key_exists($key, $this->parentEntityIds) || ! $useCache) {
+        $loadChildIds = [];
+
+        foreach ($childIds as $childId) {
+            $key = sprintf('%s_%s', $childId, $minLevel);
+
+            if ($useCache && array_key_exists($key, $this->parentEntityIds)) {
+                $result[ $childId ] = $this->parentEntityIds[ $key ];
+            } else {
+                $loadChildIds[] = $childId;
+            }
+        }
+
+        if ( ! empty($loadChildIds)) {
+            $this->logging->debug(sprintf('Searching parent entity ids for child id(s): %s',
+                implode(', ', $loadChildIds)));
+
             $tableName = $this->databaseHelper->getTableName('catalog_category_entity');
 
-            $parentQuery = $dbAdapter->select()->from([$tableName], ['parent_id']);
+            $parentQuery = $dbAdapter->select()->from([$tableName], ['entity_id', 'parent_id']);
 
-            $parentQuery->where($dbAdapter->prepareSqlCondition('entity_id', ['in' => $childIds]), null,
+            $parentQuery->where($dbAdapter->prepareSqlCondition('entity_id', ['in' => $loadChildIds]), null,
                 Select::TYPE_CONDITION);
 
             $parentQuery->where($dbAdapter->prepareSqlCondition('level', ['gteq' => $minLevel]), null,
                 Select::TYPE_CONDITION);
 
-            $queryResult = $this->databaseHelper->fetchAssoc($parentQuery, $dbAdapter);
+            $queryResult = $this->databaseHelper->fetchPairs($parentQuery, $dbAdapter);
 
-            $parentIds = array_keys($queryResult);
+            $this->logging->debug(sprintf('Found %d parent entity id(s)', count($queryResult)));
 
-            $this->logging->debug(sprintf('Found %d parent id(s)', count($parentIds)));
+            foreach ($queryResult as $entityId => $parentId) {
+                $result[ $entityId ] = $parentId;
 
-            $this->parentEntityIds[ $key ] = $parentIds;
+                $key = sprintf('%s_%s', $entityId, $minLevel);
+
+                $this->parentEntityIds[ $key ] = $parentId;
+            }
         }
 
-        return $this->parentEntityIds[ $key ];
+        if ( ! $groupByChild) {
+            $result = array_values(array_unique($result));
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param AdapterInterface $dbAdapter
+     * @param array            $childIds
+     * @param bool             $useCache
+     *
+     * @return array
+     */
+    public function getPathEntityIds(AdapterInterface $dbAdapter, array $childIds, bool $useCache = false): array
+    {
+        $this->logging->debug(sprintf('Getting path entity ids for child id(s): %s', implode(', ', $childIds)));
+
+        $result = [];
+
+        $loadChildIds = [];
+
+        foreach ($childIds as $childId) {
+            if ($useCache && array_key_exists($childId, $this->pathEntityIds)) {
+                $result[ $childId ] = $this->pathEntityIds[ $childId ];
+            } else {
+                $loadChildIds[] = $childId;
+            }
+        }
+
+        if ( ! empty($loadChildIds)) {
+            $this->logging->debug(sprintf('Searching path entity ids for child id(s): %s',
+                implode(', ', $loadChildIds)));
+
+            $tableName = $this->databaseHelper->getTableName('catalog_category_entity');
+
+            $pathQuery = $dbAdapter->select()->from([$tableName], ['entity_id', 'path']);
+
+            $pathQuery->where($dbAdapter->prepareSqlCondition('entity_id', ['in' => $loadChildIds]), null,
+                Select::TYPE_CONDITION);
+
+            $queryResult = $this->databaseHelper->fetchPairs($pathQuery, $dbAdapter);
+
+            $this->logging->debug(sprintf('Found %d path entity id(s)', count($queryResult)));
+
+            foreach ($queryResult as $entityId => $path) {
+                $pathIds = array_diff(explode('/', $path), [$entityId]);
+
+                $result[ $entityId ] = $pathIds;
+
+                $this->pathEntityIds[ $entityId ] = $pathIds;
+            }
+        }
+
+        return $result;
     }
 
     /**
