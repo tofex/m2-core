@@ -287,6 +287,7 @@ class Stores
     public function getStore($storeId = null): Store
     {
         /** @var Store $store */
+        /** @noinspection PhpUnnecessaryLocalVariableInspection */
         $store = $this->storeManager->getStore($storeId);
 
         return $store;
@@ -316,6 +317,7 @@ class Stores
     public function getWebsite($websiteId = null): Website
     {
         /** @var Website $website */
+        /** @noinspection PhpUnnecessaryLocalVariableInspection */
         $website = $this->storeManager->getWebsite($websiteId);
 
         return $website;
@@ -330,6 +332,7 @@ class Stores
     public function getWebsites(bool $withDefault = false, bool $codeKey = false): array
     {
         /** @var Website[] $websites */
+        /** @noinspection PhpUnnecessaryLocalVariableInspection */
         $websites = $this->storeManager->getWebsites($withDefault, $codeKey);
 
         return $websites;
@@ -344,6 +347,7 @@ class Stores
     public function getStores(bool $withDefault = false, bool $codeKey = false): array
     {
         /** @var Store[] $stores */
+        /** @noinspection PhpUnnecessaryLocalVariableInspection */
         $stores = $this->storeManager->getStores($withDefault, $codeKey);
 
         return $stores;
@@ -502,7 +506,7 @@ class Stores
         $locale = $this->getStoreConfig(Data::XML_PATH_DEFAULT_LOCALE, 'en_US');
 
         try {
-            $value = Zend_Locale_Format::toNumber(sprintf("%F", $value), [
+            $value = Zend_Locale_Format::toNumber(sprintf('%F', $value), [
                 'locale'        => $locale,
                 'number_format' => Zend_Locale_Data::getContent($locale, 'decimalnumber'),
                 'precision'     => $precision
@@ -518,9 +522,9 @@ class Stores
      * @param float $price
      * @param bool  $includeContainer
      *
-     * @return float
+     * @return string
      */
-    public function formatPrice(float $price, bool $includeContainer = true): float
+    public function formatPrice(float $price, bool $includeContainer = true): string
     {
         try {
             return $this->priceCurrency->format($price, $includeContainer, PriceCurrencyInterface::DEFAULT_PRECISION,
@@ -546,9 +550,9 @@ class Stores
      * @param float   $price
      * @param boolean $format
      *
-     * @return float
+     * @return float|int|string
      */
-    public function convertPrice(float $price, bool $format = false): float
+    public function convertPrice(float $price, bool $format = false)
     {
         $value = $price;
 
@@ -560,7 +564,7 @@ class Stores
             }
 
             if ($store->getCurrentCurrency() && $format) {
-                $value = $this->formatPrice($value);
+                $value = $this->formatPrice($value, false);
             }
         } catch (NoSuchEntityException | Exception $exception) {
             $this->logging->error($exception);

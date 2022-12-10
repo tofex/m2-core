@@ -2,7 +2,7 @@
     "name": "tofex/m2-core",
     "description": "Tofex Magento 2 Core",
     "type": "magento2-module",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "license": "MIT",
     "keywords": [
         "Magento"
