@@ -3,14 +3,17 @@
 namespace Tofex\Core\Helper;
 
 use Exception;
+use Magento\Catalog\Helper\Data;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Media\Config;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Catalog\Model\ProductTypes\ConfigInterface;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
+use Magento\Customer\Model\Address\AbstractAddress;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
+use Magento\Store\Model\Store;
 use Psr\Log\LoggerInterface;
 use Tofex\Help\Arrays;
 use Zend_Db_Select;
@@ -30,6 +33,9 @@ class Product
 
     /** @var Database */
     protected $databaseHelper;
+
+    /** @var Data */
+    protected $catalogHelper;
 
     /** @var LoggerInterface */
     protected $logging;
@@ -68,6 +74,7 @@ class Product
      * @param Arrays                                                                                                 $arrayHelper
      * @param Attribute                                                                                              $attributeHelper
      * @param Database                                                                                               $databaseHelper
+     * @param Data                                                                                                   $catalogHelper
      * @param LoggerInterface                                                                                        $logging
      * @param ProductFactory                                                                                         $productFactory
      * @param \Magento\Catalog\Model\ResourceModel\ProductFactory                                                    $productResourceFactory
@@ -80,6 +87,7 @@ class Product
         Arrays $arrayHelper,
         Attribute $attributeHelper,
         Database $databaseHelper,
+        Data $catalogHelper,
         LoggerInterface $logging,
         ProductFactory $productFactory,
         \Magento\Catalog\Model\ResourceModel\ProductFactory $productResourceFactory,
@@ -91,6 +99,7 @@ class Product
         $this->arrayHelper = $arrayHelper;
         $this->attributeHelper = $attributeHelper;
         $this->databaseHelper = $databaseHelper;
+        $this->catalogHelper = $catalogHelper;
 
         $this->logging = $logging;
         $this->productFactory = $productFactory;
@@ -706,5 +715,33 @@ class Product
         }
 
         return $result;
+    }
+
+    /**
+     * @param \Magento\Catalog\Model\Product $product
+     * @param float                          $price
+     * @param null|bool                      $includingTax
+     * @param AbstractAddress|null           $shippingAddress
+     * @param AbstractAddress|null           $billingAddress
+     * @param int|null                       $ctc
+     * @param null|string|bool|int|Store     $store
+     * @param bool|null                      $priceIncludesTax
+     * @param bool                           $roundPrice
+     *
+     * @return  float
+     */
+    public function getTaxPrice(
+        \Magento\Catalog\Model\Product $product,
+        float $price,
+        ?bool $includingTax = null,
+        ?AbstractAddress $shippingAddress = null,
+        ?AbstractAddress $billingAddress = null,
+        ?int $ctc = null,
+        $store = null,
+        ?bool $priceIncludesTax = null,
+        ?bool $roundPrice = true): float
+    {
+        return $this->catalogHelper->getTaxPrice($product, $price, $includingTax, $shippingAddress, $billingAddress,
+            $ctc, $store, $priceIncludesTax, $roundPrice);
     }
 }
