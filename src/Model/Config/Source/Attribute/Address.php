@@ -5,7 +5,7 @@ namespace Tofex\Core\Model\Config\Source\Attribute;
 use Magento\Customer\Model\ResourceModel\Address\Attribute\CollectionFactory;
 use Magento\Eav\Model\Entity\Attribute;
 use Magento\Framework\Data\Collection;
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 
 /**
  * @author      Andreas Knollmann
@@ -13,7 +13,7 @@ use Magento\Framework\Data\OptionSourceInterface;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class Address
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var CollectionFactory */
     protected $addressAttributeCollectionFactory;

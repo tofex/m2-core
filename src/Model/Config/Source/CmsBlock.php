@@ -5,7 +5,7 @@ namespace Tofex\Core\Model\Config\Source;
 use Magento\Cms\Model\Block;
 use Magento\Cms\Model\ResourceModel\Block\CollectionFactory;
 use Magento\Framework\Data\Collection;
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 
 /**
  * @author      Andreas Knollmann
@@ -13,7 +13,7 @@ use Magento\Framework\Data\OptionSourceInterface;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class CmsBlock
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var CollectionFactory */
     protected $collectionFactory;

@@ -3,8 +3,8 @@
 namespace Tofex\Core\Model\Config\Source;
 
 use Magento\Catalog\Model\ResourceModel\Category\TreeFactory;
-use Magento\Framework\Data\OptionSourceInterface;
 use Magento\Framework\Data\Tree\Node;
+use Magento\Framework\Option\ArrayInterface;
 use Tofex\Core\Helper\Category;
 
 /**
@@ -13,7 +13,7 @@ use Tofex\Core\Helper\Category;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class Categories
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var Category */
     protected $objectHelper;

@@ -4,7 +4,7 @@ namespace Tofex\Core\Model\Config\Source;
 
 use Magento\CatalogRule\Model\Rule\Condition\Product;
 use Magento\CatalogRule\Model\Rule\Condition\ProductFactory;
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 
 /**
  * @author      Andreas Knollmann
@@ -12,7 +12,7 @@ use Magento\Framework\Data\OptionSourceInterface;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class Operator
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var Product */
     protected $ruleCondition;

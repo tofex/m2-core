@@ -2,7 +2,7 @@
 
 namespace Tofex\Core\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 
 /**
  * @author      Andreas Knollmann
@@ -10,7 +10,7 @@ use Magento\Framework\Data\OptionSourceInterface;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class TypeId
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /**
      * @return array

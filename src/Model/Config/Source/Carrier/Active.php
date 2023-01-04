@@ -2,7 +2,7 @@
 
 namespace Tofex\Core\Model\Config\Source\Carrier;
 
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 use Tofex\Core\Helper\Carrier;
 use Tofex\Core\Helper\Stores;
 use Tofex\Help\Variables;
@@ -13,7 +13,7 @@ use Tofex\Help\Variables;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class Active
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var Variables */
     protected $variableHelper;

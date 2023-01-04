@@ -2,12 +2,15 @@
 
 namespace Tofex\Core\Model\Config\Source\Product;
 
+use Magento\Framework\Option\ArrayInterface;
+
 /**
  * @author      Andreas Knollmann
  * @copyright   Copyright (c) 2014-2022 Tofex UG (http://www.tofex.de)
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class Type
+    implements ArrayInterface
 {
     /** @var \Magento\Catalog\Model\Product\Type */
     protected $productType;

@@ -3,7 +3,7 @@
 namespace Tofex\Core\Model\Config\Source\Attribute;
 
 use Magento\Catalog\Model\Config;
-use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Option\ArrayInterface;
 
 /**
  * @author      Andreas Knollmann
@@ -11,7 +11,7 @@ use Magento\Framework\Data\OptionSourceInterface;
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 class SortBy
-    implements OptionSourceInterface
+    implements ArrayInterface
 {
     /** @var Config */
     protected $catalogConfig;
