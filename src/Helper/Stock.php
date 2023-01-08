@@ -6,6 +6,7 @@ use Magento\CatalogInventory\Api\Data\StockItemInterface;
 use Magento\CatalogInventory\Api\StockItemCriteriaInterfaceFactory;
 use Magento\CatalogInventory\Model\ResourceModel\Stock\Item\Collection;
 use Magento\CatalogInventory\Model\ResourceModel\Stock\Item\CollectionFactory;
+use Magento\CatalogInventory\Model\ResourceModel\Stock\StatusFactory;
 use Magento\CatalogInventory\Model\Stock\Item;
 use Magento\CatalogInventory\Model\Stock\ItemFactory;
 use Magento\CatalogInventory\Model\Stock\StockItemRepository;
@@ -46,6 +47,9 @@ class Stock
     /** @var QueryBuilderFactory */
     protected $queryBuilderFactory;
 
+    /** @var StatusFactory */
+    protected $stockStatusFactory;
+
     /**
      * @param Variables                                                       $variableHelper
      * @param Stores                                                          $storeHelper
@@ -55,6 +59,7 @@ class Stock
      * @param StockItemRepository                                             $stockItemRepository
      * @param StockItemCriteriaInterfaceFactory                               $stockItemCriteriaInterfaceFactory
      * @param QueryBuilderFactory                                             $queryBuilderFactory
+     * @param StatusFactory                                                   $stockStatusFactory
      */
     public function __construct(
         Variables $variableHelper,
@@ -64,7 +69,8 @@ class Stock
         CollectionFactory $stockItemCollectionFactory,
         StockItemRepository $stockItemRepository,
         StockItemCriteriaInterfaceFactory $stockItemCriteriaInterfaceFactory,
-        QueryBuilderFactory $queryBuilderFactory)
+        QueryBuilderFactory $queryBuilderFactory,
+        StatusFactory $stockStatusFactory)
     {
         $this->variableHelper = $variableHelper;
         $this->storeHelper = $storeHelper;
@@ -75,6 +81,7 @@ class Stock
         $this->stockItemRepository = $stockItemRepository;
         $this->stockItemCriteriaInterfaceFactory = $stockItemCriteriaInterfaceFactory;
         $this->queryBuilderFactory = $queryBuilderFactory;
+        $this->stockStatusFactory = $stockStatusFactory;
     }
 
     /**
@@ -155,5 +162,17 @@ class Stock
         } else {
             return $this->stockItemCollectionFactory->create();
         }
+    }
+
+    /**
+     * @param \Magento\Catalog\Model\ResourceModel\Product\Collection $productCollection
+     */
+    public function addInStock(\Magento\Catalog\Model\ResourceModel\Product\Collection $productCollection)
+    {
+        $stockStatusResource = $this->stockStatusFactory->create();
+
+        $stockStatusResource->addStockDataToCollection($productCollection, true);
+
+        $productCollection->setFlag('has_stock_status_filter', true);
     }
 }

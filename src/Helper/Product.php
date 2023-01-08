@@ -6,6 +6,7 @@ use Exception;
 use Magento\Catalog\Helper\Data;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Media\Config;
+use Magento\Catalog\Model\Product\VisibilityFactory;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Catalog\Model\ProductTypes\ConfigInterface;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
@@ -13,6 +14,7 @@ use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Customer\Model\Address\AbstractAddress;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
+use Magento\Framework\DB\Sql\Expression;
 use Magento\Store\Model\Store;
 use Psr\Log\LoggerInterface;
 use Tofex\Help\Arrays;
@@ -58,6 +60,9 @@ class Product
     /** @var ConfigInterface */
     protected $config;
 
+    /** @var VisibilityFactory */
+    protected $catalogProductVisibilityFactory;
+
     /** @var array */
     private $entitySkus = [];
 
@@ -82,6 +87,7 @@ class Product
      * @param Config                                                                                                 $productMediaConfig
      * @param \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\CollectionFactory $configurableAttributeCollectionFactory
      * @param ConfigInterface                                                                                        $config
+     * @param VisibilityFactory                                                                                      $catalogProductVisibilityFactory
      */
     public function __construct(
         Arrays $arrayHelper,
@@ -94,7 +100,8 @@ class Product
         CollectionFactory $productCollectionFactory,
         Config $productMediaConfig,
         \Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable\Attribute\CollectionFactory $configurableAttributeCollectionFactory,
-        ConfigInterface $config)
+        ConfigInterface $config,
+        VisibilityFactory $catalogProductVisibilityFactory)
     {
         $this->arrayHelper = $arrayHelper;
         $this->attributeHelper = $attributeHelper;
@@ -108,6 +115,7 @@ class Product
         $this->productMediaConfig = $productMediaConfig;
         $this->configurableAttributeCollectionFactory = $configurableAttributeCollectionFactory;
         $this->config = $config;
+        $this->catalogProductVisibilityFactory = $catalogProductVisibilityFactory;
     }
 
     /**
@@ -743,5 +751,86 @@ class Product
     {
         return $this->catalogHelper->getTaxPrice($product, $price, $includingTax, $shippingAddress, $billingAddress,
             $ctc, $store, $priceIncludesTax, $roundPrice);
+    }
+
+    /**
+     * @param Collection $productCollection
+     * @param int[]      $visibilities
+     */
+    public function addVisibility(Collection $productCollection, array $visibilities)
+    {
+        $productCollection->setVisibility($visibilities);
+    }
+
+    /**
+     * @param Collection $productCollection
+     */
+    public function addVisibleInCatalogIds(Collection $productCollection)
+    {
+        $this->addVisibility($productCollection,
+            $this->catalogProductVisibilityFactory->create()->getVisibleInCatalogIds());
+    }
+
+    /**
+     * @param Collection $productCollection
+     */
+    public function addVisibleInSearchIds(Collection $productCollection)
+    {
+        $this->addVisibility($productCollection,
+            $this->catalogProductVisibilityFactory->create()->getVisibleInSearchIds());
+    }
+
+    /**
+     * @param Collection $productCollection
+     */
+    public function addVisibleInSiteIds(Collection $productCollection)
+    {
+        $this->addVisibility($productCollection,
+            $this->catalogProductVisibilityFactory->create()->getVisibleInSiteIds());
+    }
+
+    /**
+     * @param Collection $productCollection
+     */
+    public function addStatusEnabled(Collection $productCollection)
+    {
+        $productCollection->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
+    }
+
+    /**
+     * @param Collection $productCollection
+     */
+    public function addStatusDisabled(Collection $productCollection)
+    {
+        $productCollection->addAttributeToFilter('status', ['eq' => Status::STATUS_DISABLED]);
+    }
+
+    /**
+     * @param Collection  $productCollection
+     * @param string|null $from
+     * @param string|null $to
+     */
+    public function addOrderedQty(Collection $productCollection, string $from = null, string $to = null)
+    {
+        $dbAdapter = $this->databaseHelper->getDefaultConnection();
+
+        $select = $productCollection->getSelect();
+
+        $orderTableName = $this->databaseHelper->getTableName('sales_order');
+        $orderItemTableName = $this->databaseHelper->getTableName('sales_order_item');
+
+        $select->joinLeft($orderItemTableName, sprintf('%s.product_id = e.entity_id', $orderItemTableName), []);
+        $select->joinLeft($orderTableName, sprintf('%s.entity_id = %s.order_id', $orderTableName, $orderItemTableName),
+            ['qty_ordered' => new Expression(sprintf('SUM(%s.qty_ordered)', $orderItemTableName))]);
+
+        $select->where(sprintf('%s.parent_item_id IS NULL', $orderItemTableName));
+
+        if ($from !== null && $to !== null) {
+            $select->where(sprintf('%s.created_at BETWEEN %s AND %s', $orderTableName, $dbAdapter->quote($from),
+                $dbAdapter->quote($to)));
+        }
+
+        $select->group('e.entity_id');
+        $select->having(sprintf('%s > ?', sprintf('SUM(%s.qty_ordered)', $orderItemTableName)), 0);
     }
 }

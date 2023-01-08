@@ -13,6 +13,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
@@ -394,6 +395,22 @@ class Stores
     /**
      * @return string
      */
+    public function getRootDir(): string
+    {
+        return $this->filesystem->getDirectoryRead(DirectoryList::ROOT)->getAbsolutePath();
+    }
+
+    /**
+     * @return ReadInterface
+     */
+    public function getMediaDir(): ReadInterface
+    {
+        return $this->filesystem->getDirectoryRead(DirectoryList::MEDIA);
+    }
+
+    /**
+     * @return string
+     */
     public function getSiteLogo(): string
     {
         $folderName = Logo::UPLOAD_DIR;
@@ -404,9 +421,7 @@ class Stores
 
         $logoUrl = $this->getMediaUrl() . $path;
 
-        $mediaDirectory = $this->filesystem->getDirectoryRead(DirectoryList::MEDIA);
-
-        return $storeLogoPath !== null && $mediaDirectory->isFile($path) ? $logoUrl :
+        return $storeLogoPath !== null && $this->getMediaDir()->isFile($path) ? $logoUrl :
             $this->assetRepository->getUrlWithParams('images/logo.svg', ['_secure' => $this->request->isSecure()]);
     }
 

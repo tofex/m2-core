@@ -6,6 +6,7 @@ use Exception;
 use Magento\Catalog\Api\CategoryAttributeRepositoryInterface;
 use Magento\Catalog\Api\ProductAttributeRepositoryInterface;
 use Magento\Catalog\Model\Category;
+use Magento\Catalog\Model\Config;
 use Magento\Catalog\Model\Product;
 use Magento\Eav\Model\ConfigFactory;
 use Magento\Eav\Model\Entity;
@@ -81,6 +82,9 @@ class Attribute
     /** @var ConfigFactory */
     protected $configFactory;
 
+    /** @var Config */
+    protected $catalogConfig;
+
     /** @var Entity\Attribute[] */
     private $attributes = [];
 
@@ -125,6 +129,7 @@ class Attribute
      * @param CategoryAttributeRepositoryInterface                                      $categoryAttributeRepository
      * @param \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory  $productAttributeCollectionFactory
      * @param ConfigFactory                                                             $configFactory
+     * @param Config                                                                    $catalogConfig
      */
     public function __construct(
         Arrays $arrayHelper,
@@ -142,7 +147,8 @@ class Attribute
         ProductAttributeRepositoryInterface $productAttributeRepository,
         CategoryAttributeRepositoryInterface $categoryAttributeRepository,
         \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $productAttributeCollectionFactory,
-        ConfigFactory $configFactory)
+        ConfigFactory $configFactory,
+        Config $catalogConfig)
     {
         $this->arrayHelper = $arrayHelper;
         $this->variableHelper = $variableHelper;
@@ -161,6 +167,7 @@ class Attribute
         $this->categoryAttributeRepository = $categoryAttributeRepository;
         $this->productAttributeCollectionFactory = $productAttributeCollectionFactory;
         $this->configFactory = $configFactory;
+        $this->catalogConfig = $catalogConfig;
     }
 
     /**
@@ -998,5 +1005,13 @@ class Attribute
         }
 
         return null;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAttributeCodesUsedInProductListing(): array
+    {
+        return $this->catalogConfig->getProductAttributes();
     }
 }
